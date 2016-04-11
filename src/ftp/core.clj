@@ -1,45 +1,71 @@
 (ns ftp.core
-  (:import (org.apache.commons.net.ftp FTPClient FTP FTPFile))
+  (:import
+   [org.apache.commons.net.ftp FTPClient FTP FTPFile]
+   [org.apache.commons.net PrintCommandListener]
+   [java.io PrintWriter ])
   (:require [clojure.reflect :as r])
   (:use [clojure.pprint :only [print-table]]))
 
-
-(defn foo
-  "I don't do a whole lot."
-  []
-  (println  "Hello, World!"))
-
-(defn setTimeout
+(defn set-timeout
   [client timeout]
-
+  
+  "Set Timeouts to FTP client"
+  
   (doto client
-      (.setDataTimeout timeout)
-      (.setConnectTimeout timeout)
-      (.setDefaultTimeout timeout)))
+    (.setDataTimeout timeout)
+    (.setConnectTimeout timeout)
+    (.setDefaultTimeout timeout)))
 
-(defn createClient
-  [timeout]
+(defn create-debug-listener
+  []
+  (new PrintCommandListener(new PrintWriter java.lang.System/out)))
 
-    (let [client (new FTPClient)]
-      (setTimeout client timeout)
-      
-        client))
+(defn set-debug-listener
+  [client]
+  "add debug listener"
+
+  (let [debug-listener (create-debug-listener)]
+    (.addProtocolCommandListener client debug-listener)))
+
+(defn create-client
+  [timeout debug]
+
+  "Create FTP client and set timeout"
+
+  (let [client (new FTPClient)]
+    (set-timeout client timeout)
+
+    (if debug
+      (set-debug-listener client))
+    
+    client))
+
+(defn connect
+  [client host timeout]
+
+  "Connect FTP client and set timeout"
+  
+  (.connect client host)
+  (.setSoTimeout client timeout))
+
+(defn logon
+  [client user pass]
+
+  (.login client user pass))
 
 (defn runftp
   [host user pass timeout]
 
   (print (format "run ftp : %s %s %s %d\n " host user pass timeout))
 
-  (let (createClient timeout)]
+  (let [client (create-client timeout true)]
     
     ;;(print-table (:members (r/reflect client)))
-    
-    ;; (.connect client host)
-    ;; (.setSoTimeout timeout)
 
-    ;; (.logon  user pass)
+    (connect client host timeout)
+    (logon client user pass)
 
     client))
-  
+
 (defn -main [& args]
-  (runftp "192.168.33.62" "vagrant" "vagrant" 1000))
+  (runftp "192.168.33.62" "vagrant" "vagrant" 60000))
