@@ -1,6 +1,6 @@
 (ns ftp.core
   (:import
-   [org.apache.commons.net.ftp FTPClient FTP FTPFile]
+   [org.apache.commons.net.ftp FTPClient FTP FTPFile FTPClientConfig]
    [org.apache.commons.net PrintCommandListener]
    [java.io PrintWriter ])
   (:require [clojure.reflect :as r])
@@ -27,15 +27,22 @@
   (let [debug-listener (create-debug-listener)]
     (.addProtocolCommandListener client debug-listener)))
 
+(defn create-client-config
+  []
+  (new FTPClientConfig))
+
 (defn create-client
-  [timeout debug]
+  [passive? timeout debug?]
 
   "Create FTP client and set timeout"
 
-  (let [client (new FTPClient)]
+  (let [client (new FTPClient)
+        config (create-client-config)]
+    
+    (.configure client config)
     (set-timeout client timeout)
 
-    (if debug
+    (if debug?
       (set-debug-listener client))
     
     client))
@@ -53,12 +60,23 @@
 
   (.login client user pass))
 
+(defn format-files
+  [files]
+  (map (fn [f] [(.toFormattedString f)])
+               files))
+
+(defn print-files
+  [path]
+
+  (let [files (.listFiles con)]    
+    (clojure.string/join "\n" (format-files files))))
+
 (defn runftp
-  [host user pass timeout]
+  [passive? host user pass timeout]
 
   (print (format "run ftp : %s %s %s %d\n " host user pass timeout))
 
-  (let [client (create-client timeout true)]
+  (let [client (create-client passive? timeout true)]
     
     ;;(print-table (:members (r/reflect client)))
 
@@ -68,4 +86,4 @@
     client))
 
 (defn -main [& args]
-  (runftp "192.168.33.62" "vagrant" "vagrant" 60000))
+  (runftp true "192.168.33.62" "vagrant" "vagrant" 60000))
