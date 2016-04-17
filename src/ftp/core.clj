@@ -60,16 +60,23 @@
 
   (.login client user pass))
 
+(defn close
+  [client ]
+
+  "Disconnect FTP client "
+  (print "Disconnect FTP client \n")
+  
+  (.disconnect client))
+
+
 (defn format-files
   [files]
   (map (fn [f] [(.toFormattedString f)])
                files))
 
 (defn print-files
-  [path]
-
-  (let [files (.listFiles con)]    
-    (clojure.string/join "\n" (format-files files))))
+  [files]
+  (clojure.string/join "\n" (format-files files)))
 
 (defn runftp
   [passive? host user pass timeout]
@@ -86,4 +93,5 @@
     client))
 
 (defn -main [& args]
-  (runftp true "192.168.33.62" "vagrant" "vagrant" 60000))
+  (let [client (runftp true "192.168.33.62" "vagrant" "vagrant" 60000)]
+    (close client)))
